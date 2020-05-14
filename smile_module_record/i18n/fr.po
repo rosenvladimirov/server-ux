@@ -1,13 +1,13 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-#	* smile_module_record
+#   * smile_module_record
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 9.0c-20160204\n"
+"Project-Id-Version: Odoo Server 11.0-20180808\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-17 09:07+0000\n"
-"PO-Revision-Date: 2016-02-17 09:07+0000\n"
+"POT-Creation-Date: 2018-08-16 14:12+0000\n"
+"PO-Revision-Date: 2018-08-16 14:12+0000\n"
 "Last-Translator: <>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -62,7 +62,7 @@ msgstr "Créé le"
 #: model:ir.model.fields,field_description:smile_module_record.field_base_module_export_display_name
 #: model:ir.model.fields,field_description:smile_module_record.field_base_module_import_display_name
 msgid "Display Name"
-msgstr "Afficher le nom"
+msgstr "Nom à afficher"
 
 #. module: smile_module_record
 #: selection:base.module.export,state:0
@@ -80,7 +80,7 @@ msgid "Draft"
 msgstr "Brouillon"
 
 #. module: smile_module_record
-#: code:addons/smile_module_record/wizard/base_module_export.py:241
+#: code:addons/smile_module_record/wizard/base_module_export.py:250
 #: model:ir.ui.view,arch_db:smile_module_record.view_base_module_export_form
 #: model:ir.ui.view,arch_db:smile_module_record.view_base_module_import_form
 #, python-format
@@ -101,10 +101,10 @@ msgid "File"
 msgstr "Fichier"
 
 #. module: smile_module_record
-#: code:addons/smile_module_record/wizard/base_module_import.py:62
+#: code:addons/smile_module_record/wizard/base_module_import.py:40
 #, python-format
 msgid "File is not a zip file!"
-msgstr "File is not a zip file!"
+msgstr "Le fichier n'est pas une archive zip !"
 
 #. module: smile_module_record
 #: model:ir.model.fields,field_description:smile_module_record.field_base_module_export_filename
@@ -125,7 +125,7 @@ msgstr "Précédent"
 #: model:ir.model.fields,field_description:smile_module_record.field_base_module_export_id
 #: model:ir.model.fields,field_description:smile_module_record.field_base_module_import_id
 msgid "ID"
-msgstr "Identifiant"
+msgstr "ID"
 
 #. module: smile_module_record
 #: model:ir.actions.act_window,name:smile_module_record.action_base_module_import
@@ -134,7 +134,7 @@ msgid "Import a Module"
 msgstr "Importer un module"
 
 #. module: smile_module_record
-#: code:addons/smile_module_record/wizard/base_module_import.py:51
+#: code:addons/smile_module_record/wizard/base_module_import.py:29
 #, python-format
 msgid "Invalid characters in module name: '%s'"
 msgstr "Caractères invalides dans le nom du module : '%s'"
@@ -170,8 +170,14 @@ msgstr "Modèles"
 
 #. module: smile_module_record
 #: model:ir.model.fields,field_description:smile_module_record.field_base_module_import_module_name
-msgid "Module name"
-msgstr "Nom du module"
+msgid "Module Name"
+msgstr "Nom de Module"
+
+#. module: smile_module_record
+#: model:ir.model.fields,field_description:smile_module_record.field_base_module_export_old_id
+#: model:ir.model.fields,field_description:smile_module_record.field_base_module_import_old_id
+msgid "Old"
+msgstr "Ancien"
 
 #. module: smile_module_record
 #: model:ir.ui.view,arch_db:smile_module_record.view_base_module_export_form
@@ -196,7 +202,7 @@ msgstr "Enregistrements uniquement"
 #. module: smile_module_record
 #: model:ir.model.fields,field_description:smile_module_record.field_base_module_export_state
 msgid "State"
-msgstr "État"
+msgstr "Région"
 
 #. module: smile_module_record
 #: model:ir.model.fields,help:smile_module_record.field_base_module_import_module_name
@@ -204,7 +210,7 @@ msgid "Technical name"
 msgstr "Nom technique"
 
 #. module: smile_module_record
-#: code:addons/smile_module_record/wizard/base_module_import.py:53
+#: code:addons/smile_module_record/wizard/base_module_import.py:31
 #, python-format
 msgid "The module '%s' already exists"
 msgstr "Le module '%s' existe déjà"
@@ -230,6 +236,11 @@ msgid "from"
 msgstr "à partir du"
 
 #. module: smile_module_record
+#: model:ir.model,name:smile_module_record.model_ir_model_data
+msgid "ir.model.data"
+msgstr "ir.model.data"
+
+#. module: smile_module_record
 #: selection:base.module.export,date_filter:0
 msgid "modified"
 msgstr "modifiés"
@@ -239,3 +250,4 @@ msgstr "modifiés"
 #: model:ir.ui.view,arch_db:smile_module_record.view_base_module_import_form
 msgid "or"
 msgstr "ou"
+

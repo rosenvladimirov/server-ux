@@ -1,31 +1,12 @@
 # -*- coding: utf-8 -*-
-##############################################################################
-#
-#    OpenERP, Open Source Management Solution
-#    Copyright (C) 2016 Smile (<http://www.smile.fr>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
-#
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
+# (C) 2011 Smile (<http://www.smile.fr>)
+# License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
 import base64
 import csv
-import time
-
+import io
 from lxml import etree
-from io import StringIO
-from io import BytesIO
+import time
 from xml.dom import minidom
 import zipfile
 
@@ -40,14 +21,16 @@ class BaseModuleExport(models.TransientModel):
         ('draft', 'Draft'),
         ('done', 'Done')
     ], readonly=True, default='draft')
-    start_date = fields.Datetime('Records from', required=True,
-                                 default=lambda *a: time.strftime('%Y-%m-%d %H:%M:%S'))
+    start_date = fields.Datetime(
+        'Records from', required=True,
+        default=lambda *a: time.strftime('%Y-%m-%d %H:%M:%S'))
     date_filter = fields.Selection([
         ('create', 'created'),
         ('write', 'modified'),
         ('create_write', 'created or modified'),
     ], 'Records only', required=True, default='create_write')
-    model_ids = fields.Many2many('ir.model', string='Models', domain=[('transient', '=', False)])
+    model_ids = fields.Many2many(
+        'ir.model', string='Models', domain=[('transient', '=', False)])
     file = fields.Binary(filename='filename', readonly=True)
     filename = fields.Char(size=64, required=True, default='data_module.zip')
     filetype = fields.Selection([
@@ -58,8 +41,9 @@ class BaseModuleExport(models.TransientModel):
     def _get_models(self):
         models = self.model_ids
         if not models:
-            models = [model for model in self.env['ir.model'].search([('transient', '=', False)])
-                      if self.env[model.model]._auto]
+            models = [model for model in self.env['ir.model'].search(
+                [('transient', '=', False)])
+                if self.env[model.model]._auto]
         return models
 
     def _get_domain(self):
@@ -78,8 +62,12 @@ class BaseModuleExport(models.TransientModel):
         property_obj = self.env['ir.property']
         properties = property_obj.browse()
         for model in models:
-            res_ids = [False] + ['%s,%s' % (model, res_id) for res_id in res_ids_by_model[model.model]]
-            properties |= property_obj.search([('fields_id.model_id', '=', model.id), ('res_id', 'in', res_ids)])
+            res_ids = [False] + ['%s,%s' % (model, res_id)
+                                 for res_id in res_ids_by_model[model.model]]
+            properties |= property_obj.search([
+                ('fields_id.model_id', '=', model.id),
+                ('res_id', 'in', res_ids),
+            ])
         if not properties:
             return []
         fields_to_export = property_obj.get_fields_to_export()
@@ -93,11 +81,15 @@ class BaseModuleExport(models.TransientModel):
         model_data_obj = self.env['ir.model.data']
         model_data = model_data_obj.browse()
         for model in models:
-            domain = [('model', '=', model.model), ('res_id', 'in', res_ids_by_model[model.model])]
+            domain = [
+                ('model', '=', model.model),
+                ('res_id', 'in', res_ids_by_model[model.model]),
+            ]
             model_data |= model_data_obj.search(domain)
         if not model_data:
             return []
-        fields_to_export = model_data_obj.get_fields_to_export() + ['complete_name']
+        fields_to_export = model_data_obj.get_fields_to_export() + \
+            ['complete_name']
         for field in ('id', 'noupdate'):
             del fields_to_export[fields_to_export.index(field)]
         rows = [fields_to_export + ['noupdate']]
@@ -111,7 +103,7 @@ class BaseModuleExport(models.TransientModel):
         models = self._get_models()
         datas = self.env['ir.model'].get_ordered_model_graph(models)
         domain = self._get_domain()
-        res_ids_by_model = {}
+        res_ids_by_model = {model.model: [] for model in models}
         for index, (model, fields_to_export) in enumerate(datas):
             res_obj = self.env[model]
             recs = res_obj.search(res_obj._log_access and domain or [])
@@ -122,32 +114,29 @@ class BaseModuleExport(models.TransientModel):
             rows.extend(recs.export_data(fields_to_export)['datas'])
             datas[index] = (model, rows)
         datas.extend(self._export_ir_properties(models, res_ids_by_model))
-        datas = self._export_ir_model_data(models, res_ids_by_model, False) + datas
+        datas = self._export_ir_model_data(
+            models, res_ids_by_model, False) + datas
         datas += self._export_ir_model_data(models, res_ids_by_model, True)
         return datas
 
     def _convert_to_csv(self, model, rows):
-        s = StringIO.StringIO()
-        writer = csv.writer(s, quoting=csv.QUOTE_NONNUMERIC)
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
         for row in rows:
             for index, data in enumerate(row):
                 if not data:
                     data = None
                 if data is True:
                     data = 1
-                if isinstance(data, basestring):
+                if isinstance(data, str):
                     data = data.replace('\n', ' ').replace('\t', ' ')
-                    try:
-                        data = data.encode('utf-8')
-                    except UnicodeError:
-                        pass
                 row[index] = data
             writer.writerow(row)
-        return s.getvalue()
+        return output.getvalue()
 
     def _convert_to_xml(self, model, rows):
-        openerp_elem = etree.Element('odoo')
-        data_elem = etree.SubElement(openerp_elem, 'data')
+        odoo_elem = etree.Element('odoo')
+        data_elem = etree.SubElement(odoo_elem, 'data')
         data_elem.set('noupdate', '1')
         fields_ = rows[0]
         for row in rows[1:]:
@@ -167,7 +156,9 @@ class BaseModuleExport(models.TransientModel):
                     field_elem.set('eval', '%s' % value)
                     continue
                 if not field_name.endswith(':id'):
-                    if field.type == 'selection':  # Contrary to CSV import, XML import requires key instead of value
+                    if field.type == 'selection':
+                        # Contrary to CSV import, XML import requires key
+                        # instead of value
                         for item in field._description_selection(self.env):
                             if item[1] == value:
                                 field_elem.text = '%s' % item[0]
@@ -175,11 +166,15 @@ class BaseModuleExport(models.TransientModel):
                         field_elem.text = '%s' % value
                 else:
                     if field.type == 'many2one':
-                        field_elem.set(value and 'ref' or 'eval', value or 'False')
+                        field_elem.set(
+                            value and 'ref' or 'eval', value or 'False')
                     elif field.type == 'many2many':
-                        field_elem.set('eval', '[(6, 0, %s)]' % map(lambda s: "ref('%s')" % s,
-                                                                    (value or '').split(',')))
-        rough_string = etree.tostring(openerp_elem, encoding='utf-8', xml_declaration=True)
+                        field_elem.set(
+                            'eval', '[(6, 0, %s)]' % map(
+                                lambda s: "ref('%s')" % s,
+                                (value or '').split(',')))
+        rough_string = etree.tostring(
+            odoo_elem, encoding='utf-8', xml_declaration=True)
         reparsed = minidom.parseString(rough_string)
         return reparsed.toprettyxml(indent='  ', encoding='utf-8')
 
@@ -188,8 +183,6 @@ class BaseModuleExport(models.TransientModel):
         for model, rows in self._export_data_by_model():
             args = (self.env[model], rows)
             content = getattr(self, '_convert_to_%s' % self.filetype)(*args)
-            # Force module='base' in order to allow multiple export->import for a same data
-            content = content.decode('utf-8').replace('__export__.', 'base.')
             data_files.append((model, content))
         return data_files
 
@@ -213,12 +206,12 @@ class BaseModuleExport(models.TransientModel):
         return ', '.join(map(lambda mod: '"%s"' % mod, set(modules)))
 
     @property
-    def openerp_filecontent(self):
+    def manifest_filecontent(self):
         return """{
     "name" : "Data Module",
     "version" : "1.0",
-    "author" : "dXFactor Ltd., Smile-SA",
-    "website" : "http://www.dxfactor.eu",
+    "author" : "Smile",
+    "website" : "http://www.smile.fr",
     "description": "Data module created from smile_module_record",
     "category" : "Hidden",
     "depends" : [%(dependencies)s],
@@ -239,23 +232,24 @@ class BaseModuleExport(models.TransientModel):
         filenames = BaseModuleExport._get_data_filename(models, self.filetype)
         zip_content = {
             '__init__.py': "#\n# Generated by smile_module_record\n#\n",
-            '__manifest__.py': self.openerp_filecontent % {
+            '__manifest__.py': self.manifest_filecontent % {
                 'dependencies': self._get_dependencies(),
-                'data_files': ',\n        '.join(map(lambda model: '"%s"' % model, filenames)),
+                'data_files': ',\n        '.join(
+                    map(lambda model: '"%s"' % model, filenames)),
             },
         }
         for index, filename in enumerate(filenames):
             zip_content[filename] = datas[index][1]
-        #s = StringIO()
-        s = BytesIO()
-        zip = zipfile.ZipFile(s, 'w')
+        output = io.BytesIO()
+        zip = zipfile.ZipFile(output, 'w')
         for filename, filecontent in zip_content.items():
             info = zipfile.ZipInfo(filename)
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 2175008768  # specifies mode 0644
             zip.writestr(info, filecontent)
         zip.close()
-        self.write({'file': base64.encodestring(s.getvalue()), 'state': 'done'})
+        self.write(
+            {'file': base64.encodebytes(output.getvalue()), 'state': 'done'})
 
     @api.multi
     def set_to_draft(self):
