@@ -4,9 +4,9 @@
 
 {
     "name": "Export Customizations as a Module",
-    "version": "0.1",
+    "version": "0.2",
     "depends": ["base"],
-    "author": "Smile",
+    "author": "Rosen Vladimirov, Bioprint Ltd., Smile",
     "license": 'AGPL-3',
     "description": """
     This module aims to export data in a new module containing CSV/XML files.

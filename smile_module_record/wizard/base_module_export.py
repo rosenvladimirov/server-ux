@@ -9,6 +9,8 @@ from lxml import etree
 import time
 from xml.dom import minidom
 import zipfile
+import logging
+_logger = logging.getLogger(__name__)
 
 from odoo import api, fields, models, _
 
@@ -37,6 +39,7 @@ class BaseModuleExport(models.TransientModel):
         ('csv', 'CSV'),
         ('xml', 'XML'),
     ], required=True, default='csv')
+    company_id = fields.Many2one('res.company', string='Company', required=True, default=lambda self: self.env.user.company_id)
 
     def _get_models(self):
         models = self.model_ids
@@ -46,8 +49,10 @@ class BaseModuleExport(models.TransientModel):
                 if self.env[model.model]._auto]
         return models
 
-    def _get_domain(self):
+    def _get_domain(self, model):
         domain = []
+        if 'company_id' in model._fields:
+            domain = [('company_id', '=', self.company_id.id)]
         if 'create' in self.date_filter:
             domain.append(('create_date', '>=', self.start_date))
         if 'write' in self.date_filter:
@@ -102,10 +107,10 @@ class BaseModuleExport(models.TransientModel):
     def _export_data_by_model(self):
         models = self._get_models()
         datas = self.env['ir.model'].get_ordered_model_graph(models)
-        domain = self._get_domain()
         res_ids_by_model = {model.model: [] for model in models}
         for index, (model, fields_to_export) in enumerate(datas):
             res_obj = self.env[model]
+            domain = self._get_domain(res_obj)
             recs = res_obj.search(res_obj._log_access and domain or [])
             if 'parent_left' in res_obj._fields:
                 recs = recs.sorted(key=lambda rec: rec.parent_left)
@@ -145,15 +150,21 @@ class BaseModuleExport(models.TransientModel):
             if 'id' in fields_:
                 record_elem.set('id', row[fields_.index('id')])
             for field_name in fields_:
-                if field_name == 'id':
+                if field_name in ['id', 'parent_left', 'parent_right']:
+                    continue
+                elif model._name in ['account.account.tag', 'account.tax'] and \
+                        field_name in ['color_picker', 'xml_tag', 'company_id', 'color', 'active']:
                     continue
                 field_elem = etree.SubElement(record_elem, 'field')
                 name = field_name.replace(':id', '')
                 value = row[fields_.index(field_name)]
+                _logger.info("Fields: %s -> %s = %s" % (fields_.index(field_name), field_name, value))
                 field_elem.set('name', name)
                 field = model._fields[name]
                 if isinstance(value, bool) or field.type == 'boolean':
                     field_elem.set('eval', '%s' % value)
+                    continue
+                if not (isinstance(value, bool) or field.type == 'boolean') and not value:
                     continue
                 if not field_name.endswith(':id'):
                     if field.type == 'selection':
@@ -169,10 +180,11 @@ class BaseModuleExport(models.TransientModel):
                         field_elem.set(
                             value and 'ref' or 'eval', value or 'False')
                     elif field.type == 'many2many':
+                        value = "'"+"','".join((value or '').split(','))+"'"
                         field_elem.set(
-                            'eval', '[(6, 0, %s)]' % map(
-                                lambda s: "ref('%s')" % s,
-                                (value or '').split(',')))
+                            'eval', '[(6, 0, [%s])]' % ",".join(list(map(
+                                lambda s: "ref({})".format(s),
+                                (value or '').split(',')))))
         rough_string = etree.tostring(
             odoo_elem, encoding='utf-8', xml_declaration=True)
         reparsed = minidom.parseString(rough_string)

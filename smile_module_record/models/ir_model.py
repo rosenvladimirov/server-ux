@@ -3,7 +3,8 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
 from odoo import api, models
-
+import logging
+_logger = logging.getLogger(__name__)
 
 def get_index(ordered_list, key):
     ordered_list = [i for i, j in ordered_list][::-1]
@@ -21,6 +22,8 @@ class IrModel(models.Model):
                 if field.type in ('many2one', 'many2many') and field.store \
                         and field.comodel_name in models and \
                         field.required == required:
+                    _logger.info('Fields: %s \n %s' %  (field, field_name))
+                    # _logger.info('field_name: %s' % field_name)
                     linked_models[model].setdefault(
                         field.comodel_name, []).append('%s:id' % field_name)
         return linked_models
